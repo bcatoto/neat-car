@@ -23,8 +23,10 @@ class Car:
     Car class representing car player
     """
     VEL = 5
-    INITIAL_DIR = (0, 1)
+    INITIAL_DIR = pygame.Vector2(0, 1)
     IMG = pygame.transform.scale(CAR_IMG, (20, 44))
+    HEIGHT = IMG.get_height()
+    WIDTH = IMG.get_width()
     TRACK_MASK = pygame.mask.from_surface(TRACK_IMG)
 
     def __init__(self, x, y, angle):
@@ -37,13 +39,8 @@ class Car:
         self.update_mask()
 
     def update_angle(self):
-        x = self.INITIAL_DIR[0]
-        y = self.INITIAL_DIR[1]
-        sin = math.sin(math.radians(self.angle))
-        cos = math.cos(math.radians(self.angle))
-        self.dir = (cos * x - sin * y, sin * x + cos * y)
+        self.dir = self.INITIAL_DIR.rotate(self.angle)
         self.img = pygame.transform.rotate(self.IMG, self.angle)
-        print("angle: ", self.angle)
 
     def update_mask(self):
         self.mask = pygame.mask.from_surface(self.img)
@@ -53,13 +50,26 @@ class Car:
         self.update_angle()
 
     def move(self):
-        self.x += round(self.dir[0] * self.VEL)
-        self.y -= round(self.dir[1] * self.VEL)
+        self.x += round(self.dir.x * self.VEL)
+        self.y -= round(self.dir.y * self.VEL)
         self.collide()
 
     def collide(self):
         if self.TRACK_MASK.overlap(self.mask, (self.x, self.y)):
             x = 1
+
+    def radar(self, angle):
+        center_x, center_y = self.img.get_rect().center
+        vec = self.INITIAL_DIR.rotate(self.angle + angle)
+        start_x = self.x + center_x + vec.x * (self.HEIGHT / 2)
+        start_y = self.y + center_y + vec.y * (self.HEIGHT / 2)
+        end_x = self.x + center_x + vec.x * (self.HEIGHT / 2 + 100)
+        end_y = self.y + center_y + vec.y * (self.HEIGHT / 2 + 100)
+        pygame.draw.line(WIN, (255, 255, 255), (start_x, start_y), (end_x, end_y))
+        print("x: ", start_x)
+        print("y: ", start_y)
+        print("eX: ", end_x)
+        print("eX: ", end_y)
 
     def draw(self, win):
         rect = self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center)
@@ -89,6 +99,7 @@ def eval_genomes():
 
         car.rotate(-5)
         car.move()
+        # car.radar(0)
         draw_window(WIN, car)
         count += 1
 

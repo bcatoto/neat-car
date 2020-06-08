@@ -35,12 +35,14 @@ class Car:
         self.angle = angle
         self.dir = self.INITIAL_DIR
         self.img = self.IMG
+        self.offset = (x, y)
         self.update_angle()
         self.update_mask()
 
     def update_angle(self):
         self.dir = self.INITIAL_DIR.rotate(self.angle)
         self.img = pygame.transform.rotate(self.IMG, self.angle)
+        self.offset = self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center).topleft
 
     def update_mask(self):
         self.mask = pygame.mask.from_surface(self.img)
@@ -61,19 +63,14 @@ class Car:
     def radar(self, angle):
         center_x, center_y = self.img.get_rect().center
         vec = self.INITIAL_DIR.rotate(self.angle + angle)
-        start_x = self.x + center_x + vec.x * (self.HEIGHT / 2)
-        start_y = self.y + center_y + vec.y * (self.HEIGHT / 2)
-        end_x = self.x + center_x + vec.x * (self.HEIGHT / 2 + 100)
-        end_y = self.y + center_y + vec.y * (self.HEIGHT / 2 + 100)
-        pygame.draw.line(WIN, (255, 255, 255), (start_x, start_y), (end_x, end_y))
-        print("x: ", start_x)
-        print("y: ", start_y)
-        print("eX: ", end_x)
-        print("eX: ", end_y)
+        start_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2)
+        start_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2)
+        end_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + 100)
+        end_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + 100)
+        pygame.draw.line(WIN, (255, 255, 255), (start_x, start_y), (end_x, end_y), 3)
 
     def draw(self, win):
-        rect = self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center)
-        win.blit(self.img, rect.topleft)
+        win.blit(self.img, self.offset)
 
 def draw_window(win, car):
     # draw level
@@ -82,6 +79,9 @@ def draw_window(win, car):
 
     # draw cars
     car.draw(win)
+    car.radar(-36)
+    car.radar(0)
+    car.radar(36)
 
     pygame.display.update()
 
@@ -98,8 +98,8 @@ def eval_genomes():
                 break
 
         car.rotate(-5)
-        car.move()
-        # car.radar(0)
+        # car.move()
+
         draw_window(WIN, car)
         count += 1
 

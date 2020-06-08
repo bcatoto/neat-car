@@ -54,6 +54,7 @@ class Car:
     def move(self):
         self.x += round(self.dir.x * self.VEL)
         self.y -= round(self.dir.y * self.VEL)
+        self.offset = self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center).topleft
         self.collide()
 
     def collide(self):
@@ -61,12 +62,18 @@ class Car:
             x = 1
 
     def radar(self, angle):
+        toggle = 0
+        if abs(angle) == 45:
+            toggle = -7
+        elif abs(angle) == 90:
+            toggle = -14
+
         center_x, center_y = self.img.get_rect().center
         vec = self.INITIAL_DIR.rotate(self.angle + angle)
-        start_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2)
-        start_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2)
-        end_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + 100)
-        end_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + 100)
+        start_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle)
+        start_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle)
+        end_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle + 100)
+        end_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle + 100)
         pygame.draw.line(WIN, (255, 255, 255), (start_x, start_y), (end_x, end_y), 3)
 
     def draw(self, win):
@@ -79,14 +86,16 @@ def draw_window(win, car):
 
     # draw cars
     car.draw(win)
-    car.radar(-36)
+    car.radar(-90)
+    car.radar(-45)
     car.radar(0)
-    car.radar(36)
+    car.radar(45)
+    car.radar(90)
 
     pygame.display.update()
 
 def eval_genomes():
-    car = Car(350, 85, -90)
+    car = Car(350, 80, -90)
     count = 0
     run = True
     while run:
@@ -98,7 +107,7 @@ def eval_genomes():
                 break
 
         car.rotate(-5)
-        # car.move()
+        car.move()
 
         draw_window(WIN, car)
         count += 1

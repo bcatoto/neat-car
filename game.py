@@ -23,28 +23,45 @@ class Car:
     Car class representing car player
     """
     VEL = 5
-    IMG = pygame.transform.scale(CAR_IMG, (20, 44))
-    MASK = pygame.mask.from_surface(IMG)
+
     TRACK_MASK = pygame.mask.from_surface(TRACK_IMG)
 
     def __init__(self, x, y, angle):
         self.x = x
         self.y = y
         self.angle = angle
-        self.dir = (0, -1)
-        self.rotate()
+        self.dir = (0, 1)
+        self.img = pygame.transform.scale(CAR_IMG, (20, 44))
+        self.update_angle()
+        self.update_mask()
 
-    def rotate(self):
+    def update_angle(self):
         x = self.dir[0]
         y = self.dir[1]
-        new_x = math.cos(self.angle) * x - math.sin(self.angle) * y
-        new_y = math.sin(self.angle) * x + math.cos(self.angle) * y
-        self.dir = (new_x, new_y)
+        sin = math.sin(math.radians(self.angle))
+        cos = math.cos(math.radians(self.angle))
+        self.dir = (cos * x - sin * y, sin * x + cos * y)
+        self.img = pygame.transform.rotate(self.img, self.angle)
+
+    def update_mask(self):
+        self.mask = pygame.mask.from_surface(self.img)
+
+    def rotate(self, angle):
+        self.angle += angle
+        update_angle()
+
+    def move(self):
+        self.x += round(self.dir[0] * self.VEL)
+        self.y -= round(self.dir[1] * self.VEL)
+        self.collide()
+
+    def collide(self):
+        if self.TRACK_MASK.overlap(self.mask, (self.x, self.y)):
+            print("DEAD")
 
     def draw(self, win):
-        img = pygame.transform.rotate(self.IMG, self.angle)
-        new_rect = img.get_rect(center = img.get_rect(topleft = (self.x, self.y)).center)
-        win.blit(img, new_rect.topleft)
+        rect = self.img.get_rect(center = self.img.get_rect(topleft = (self.x, self.y)).center)
+        win.blit(self.img, rect.topleft)
 
 def draw_window(win, car):
     # draw level
@@ -57,7 +74,7 @@ def draw_window(win, car):
     pygame.display.update()
 
 def eval_genomes():
-    car = Car(100, 100, -90)
+    car = Car(350, 85, -90)
 
     run = True
     while run:
@@ -68,6 +85,7 @@ def eval_genomes():
                 quit()
                 break
 
+        car.move()
         draw_window(WIN, car)
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ WIN_HEIGHT = 600
 
 WIN = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 pygame.display.set_caption("NEAT Racing")
-STAT_FONT = pygame.font.SysFont("arial", 50)
+STAT_FONT = pygame.font.SysFont("arial", 30)
 
 CAR_IMG = pygame.image.load(os.path.join("imgs", "car.png")).convert_alpha()
 TRACK_IMG = pygame.image.load(os.path.join("imgs", "track.png")).convert_alpha()
@@ -35,17 +35,14 @@ class Car:
         self.angle = angle
         self.dir = self.INITIAL_DIR
         self.img = self.IMG
-        self.offset = (x, y)
         self.update_angle()
-        self.update_mask()
 
     def update_angle(self):
         self.dir = self.INITIAL_DIR.rotate(self.angle)
         self.img = pygame.transform.rotate(self.IMG, self.angle)
-        self.offset = self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center).topleft
 
-    def update_mask(self):
-        self.mask = pygame.mask.from_surface(self.img)
+    def get_offset(self):
+        return self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center).topleft
 
     def rotate(self, angle):
         self.angle += angle
@@ -54,11 +51,11 @@ class Car:
     def move(self):
         self.x += round(self.dir.x * self.VEL)
         self.y -= round(self.dir.y * self.VEL)
-        self.offset = self.img.get_rect(center = self.IMG.get_rect(topleft = (self.x, self.y)).center).topleft
         self.collide()
 
     def collide(self):
-        if self.TRACK_MASK.overlap(self.mask, self.offset):
+        mask = pygame.mask.from_surface(self.img)
+        if self.TRACK_MASK.overlap(mask, self.get_offset()):
             return True
         return False
 
@@ -71,28 +68,25 @@ class Car:
 
         center_x, center_y = self.img.get_rect().center
         vec = self.INITIAL_DIR.rotate(self.angle + angle)
-        start_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle)
-        start_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle)
+        offset = self.get_offset()
+        start_x = offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle)
+        start_y = offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle)
 
         for i in range(0, 100):
-            x = round(self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle + i))
-            y = round(self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle + i))
+            x = round(offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle + i))
+            y = round(offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle + i))
             if self.TRACK_MASK.get_at((x, y)):
                 return math.sqrt((x - start_x) ** 2 + (y - start_y) ** 2)
 
-        return -1
-
-        # end_x = self.offset[0] + center_x + vec.x * (self.HEIGHT / 2 + toggle + 100)
-        # end_y = self.offset[1] + center_y - vec.y * (self.HEIGHT / 2 + toggle + 100)
-        # pygame.draw.line(WIN, (255, 255, 255), (start_x, start_y), (end_x, end_y), 3)
+        return math.sqrt((x - start_x) ** 2 + (y - start_y) ** 2)
 
     def data(self):
-        return (self.x, self.y, self.radar(-90), self.radar(-45), self.radar(0), self.radar(45), self.radar(90))
+        return (self.radar(-90), self.radar(-45), self.radar(0), self.radar(45), self.radar(90))
 
     def draw(self, win):
-        win.blit(self.img, self.offset)
+        win.blit(self.img, self.get_offset())
 
-def draw_window(win, cars, gen, alive):
+def draw_window(win, cars, gen, alive, score):
     # draw level
     win.blit(BG_IMG, (0, 0))
     win.blit(TRACK_IMG, (0, 0))
@@ -112,7 +106,11 @@ def draw_window(win, cars, gen, alive):
 
     # alive
     alive_label = STAT_FONT.render("Alive: " + str(alive), 1, (255,255,255))
-    win.blit(alive_label, (10, 50))
+    win.blit(alive_label, (10, 30))
+
+    # current score
+    score_label = STAT_FONT.render("Score: " + str(score), 1, (255,255,255))
+    win.blit(score_label, (10, 50))
 
     pygame.display.update()
 
@@ -123,6 +121,7 @@ def eval_genomes(genomes, config):
     nets = []
     cars = []
     gens = []
+    score = 0
 
     for i, genome in genomes:
         genome.fitness = 0
@@ -152,9 +151,9 @@ def eval_genomes(genomes, config):
             output = nets[i].activate(car.data())
 
             # moves player based on output
-            if output[0] > 0:
+            if output[0] > output[1]:
                 car.rotate(ROTATION)
-            elif output[0] < 0:
+            else:
                 car.rotate(-ROTATION)
 
             # move car
@@ -167,7 +166,8 @@ def eval_genomes(genomes, config):
                 gens.pop(i)
                 cars.pop(i)
 
-        draw_window(WIN, cars, GEN, len(cars))
+        score += 1
+        draw_window(WIN, cars, GEN, len(cars), score)
 
     GEN += 1
 
